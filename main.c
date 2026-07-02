@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <stdbool.h>
-#include <termios.h>
-#include <unistd.h>
 #include <string.h>
 
 
@@ -18,22 +16,7 @@ typedef struct {
 
 
 
-/* autor de la funcion:
- * https://stackoverflow.com/questions/3276546/how-to-implement-getch-function-of-c-in-linux
- */
-/* reads from keypress, doesn't echo */
-int getch(void)
-{
-    struct termios oldattr, newattr;
-    int ch;
-    tcgetattr( STDIN_FILENO, &oldattr );
-    newattr = oldattr;
-    newattr.c_lflag &= ~( ICANON | ECHO );
-    tcsetattr( STDIN_FILENO, TCSANOW, &newattr );
-    ch = getchar();
-    tcsetattr( STDIN_FILENO, TCSANOW, &oldattr );
-    return ch;
-}
+
 
 
 bool exit_shell()
@@ -68,25 +51,31 @@ void separar_token(char *b, char **token, int *n )
 
 } 
 
-/* Cuando apreto la tecla back space
-*me la tima como la tecla de borrado.
-*esta funcion imprime la tecla bs, un espacio
-*y de nuevo la tecla bs. dando la senciacion de borrado
-*como en cualquier otra shell */
-void print_bs()
+
+
+void cargar_buffer(input_t *input, bool vf)
 {
-  printf("%c",T_BS);
-  printf(" ");
-  printf("%c",T_BS);
+  while (!vf && input->c != '\n'){
+    input->c = getchar();
+    if (input->cant < MAX_BUFFER - 1 && input->c != '\n' && input->c != T_DEL) {
+      input->buffer[input->cant] = input->c;       
+      input->cant++;
+      input->buffer[input->cant] = '\0';
+    }
+    if ((input->c == T_BS || input->c == T_DEL) && input->cant > 0) {
+      input->cant--;
+    }      
+  }
 }
 
-void cargar_buffer(input_t *input)
+void procesar_buffer(input_t *input, bool *vf)
 {
-  input->c = getch();
-  if (input->cant < MAX_BUFFER - 1 && input->c != '\n' && input->c != T_DEL) {
-    input->buffer[input->cant] = input->c;       
-    input->cant++;
-    input->buffer[input->cant] = '\0';
+  if (input->c == '\n') {
+    char *token[MAX_TOK];
+    int cant = 0;
+    separar_token(input->buffer,token,&cant);
+    ejecutar_comando(token,cant,vf);
+    input->cant = 0;
   }
 }
 
@@ -97,23 +86,12 @@ int main()
   while (!vf) {
     printf("chan > ");
     input.c = 0;
-    while (!vf && input.c != '\n'){      
-      cargar_buffer(&input);
-        if (input.c == '\n') {
-          char *token[MAX_TOK];
-          int cant = 0;
-          separar_token(input.buffer,token,&cant);
-          ejecutar_comando(token,cant,&vf);
-          input.cant = 0;
-        }
-      if ((input.c == T_BS || input.c == T_DEL)) {
-        if (input.cant > 0) {
-          input.cant--;
-          print_bs();
-        }
-      }
-      printf("%c",input.c);    
-    }
+    
+	cargar_buffer(&input,vf);
+        procesar_buffer(&input,&vf);
+    
+      
+    
 
   }
   return 0;
