@@ -79,20 +79,23 @@ void procesar_buffer(input_t *input, bool *vf)
   }
 }
 
-int main()
+
+void loop(input_t *input)
 {
   bool vf = false;
-  input_t input = {0}; 
   while (!vf) {
-    printf("chan > ");
-    input.c = 0;
-    
-	cargar_buffer(&input,vf);
-        procesar_buffer(&input,&vf);
-    
-      
-    
+    printf("[chan]> ");
+    input->c = 0;
+    cargar_buffer(input,vf);
+    procesar_buffer(input,&vf);
+    }
+}
 
-  }
+
+int main()
+{
+
+  input_t input = {0}; 
+  loop(&input);
   return 0;
 }
