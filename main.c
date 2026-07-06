@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MAX_BUFFER  512
 #define MAX_TOK  64
@@ -15,8 +16,10 @@ typedef struct {
 } input_t;
 
 
-
-
+typedef struct {
+  char *tok[MAX_TOK];
+  int cant;
+} token_t;
 
 
 bool exit_shell()
@@ -36,16 +39,16 @@ void ejecutar_comando(char **t, int n, bool *vf)
 
   }
 
-void separar_token(char *b, char **token, int *n )
+void separar_token(char *b, char **token, const char *delim, int *n )
 {
   char *tok;
-  tok = strtok(b," " );
+  tok = strtok(b,delim );
 
   int i = 0;
   while (tok  != NULL && i < MAX_TOK) {
     token[i] = tok;
     i++;
-    tok = strtok(NULL," ");
+    tok = strtok(NULL,delim);
   }
   *n = i;
 
@@ -68,23 +71,30 @@ void cargar_buffer(input_t *input, bool vf)
   }
 }
 
+void init_array_tokens(token_t *t, char *b, const char *delim)
+{
+  t->cant = 0;
+  separar_token(b,t->tok,delim,&t->cant);
+}
+
 void procesar_buffer(input_t *input, bool *vf)
 {
   if (input->c == '\n') {
-    char *token[MAX_TOK];
-    int cant = 0;
-    separar_token(input->buffer,token,&cant);
-    ejecutar_comando(token,cant,vf);
+    token_t t = {0};
+    init_array_tokens(&t,input->buffer," ");
+    ejecutar_comando(t.tok,t.cant,vf);
     input->cant = 0;
   }
 }
 
 
-void loop(input_t *input)
+void loop(input_t *input, token_t p)
 {
   bool vf = false;
+  (void)p;
+
   while (!vf) {
-    printf("[chan]> ");
+    printf("[>_<]: ");
     input->c = 0;
     cargar_buffer(input,vf);
     procesar_buffer(input,&vf);
@@ -94,8 +104,11 @@ void loop(input_t *input)
 
 int main()
 {
-
-  input_t input = {0}; 
-  loop(&input);
+  char *path = getenv("PATH");
+  token_t paths = {0};
+  init_array_tokens(&paths,path,":");
+  input_t input = {0};
+  (void)input;
+  loop(&input,paths);
   return 0;
 }
