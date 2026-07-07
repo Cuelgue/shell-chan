@@ -52,16 +52,12 @@ void imp_token(token_t t)
 void ejecutar_programa(token_t t)
 {
   pid_t p = fork();
-  // Encontramos el problema, todo tenemos el path del usuario local.
-  printf("%s\n",getenv("PATH"));
   if (p < 0) {
     fprintf(stderr,"FORK ERROR: No se pudo crear el proceso\n");
     exit(0);
   } else if (p == 0) {
     // El proceso hijo ejecuta si existe el programa.
-    //    int n = execvp(t.tok[0],t.tok);
-    char *l[] = {"ls",NULL};
-    int n = execvp("ls",l);
+    int n = execvp(t.tok[0],t.tok);
     if (n == -1) {
     printf("execl returned! errno is [%d]\n",errno);
     perror("The error message is :");
@@ -123,11 +119,9 @@ void procesar_buffer(input_t *input, bool *vf)
 }
 
 
-void loop(input_t *input, token_t p)
+void loop(input_t *input)
 {
   bool vf = false;
-  (void)p;
-
   while (!vf) {
     printf("[>_<]: ");
     input->c = 0;
@@ -140,9 +134,9 @@ void loop(input_t *input, token_t p)
 int main()
 {
   char *path = getenv("PATH");
-  token_t paths = {0};
-  init_array_tokens(&paths,path,":");
+  //era necesario setear el path, para que no tome solo el local del usuario.
+  setenv("PATH", path, 1);
   input_t input = {0};
-  loop(&input,paths);
+  loop(&input);
   return 0;
 }
